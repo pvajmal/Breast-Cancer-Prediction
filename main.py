@@ -1,64 +1,38 @@
-#import Libraries
-
-import math
-import numpy as np
+import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
-import pprint 
-import sklearn
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import  LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
-import sys
+import numpy as np
+st.header("Breast Cancer Prediction")
+st.text_input("Enter your Name: ", key="name")
+data = pd.read_csv("Breast cancer.csv")
 
+encoder = LabelEncoder()
+encoder.classes_ = np.load('classes.npy',allow_pickle=True)
 
-#Read Data
-data = pd.read_csv('breast-cancer.csv')
+# load model
+DecisionTree = DecisionTreeClassifier()
+best_xgboost_model.load_model("best_model.json")
+if st.checkbox('Show dataframe'):
+    data
 
-data.drop('id', axis =1, inplace= True)
-data['diagnosis'] = (data['diagnosis'] == 'M').astype(int)
-#print(data.shape)
+st.subheader("Please select relevant features of your fish!")
+left_column, right_column = st.columns(2)
+with left_column:
+    inp_species = st.radio(
+        'Name of the fish:',
+        np.unique(data['Species']))
 
-#Get highly correlated features
-corr = data.corr()
-plt.figure(figsize=(20,20))
-sns.heatmap(corr, cmap='viridis', annot=True)
-plt.savefig('correlation.png')
+input_Length1 = st.slider('Vertical length(cm)', 0.0, max(data["Length1"]), 1.0)
+input_Length2 = st.slider('Diagonal length(cm)', 0.0, max(data["Length2"]), 1.0)
+input_Length3 = st.slider('Cross length(cm)', 0.0, max(data["Length3"]), 1.0)
+input_Height = st.slider('Height(cm)', 0.0, max(data["Height"]), 1.0)
+input_Width = st.slider('Diagonal width(cm)', 0.0, max(data["Width"]), 1.0)
 
-
-# Get the absolute value of the correlation
-cor_target = abs(corr["diagnosis"])
-
-
-# Select highly correlated features (thresold = 0.2)
-relevant_features = cor_target[cor_target>0.2]
-
-# Collect the names of the features
-names = [index for index, value in relevant_features.iteritems()]
-#print(names)
-# Drop the target variable from the results
-names.remove('diagnosis')
-# Display the results
-#pprint.pprint(names)
-
-X = data[names]
-#print(X.shape)
-Y = data['diagnosis']
-y = data['diagnosis'].values
-
-
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size = 0.8, random_state = 41)
-print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape)
-
-#Model training
-model = DecisionTreeClassifier()
-model.fit(X_train, Y_train)
-
-#Model testing
-y_pred = model.predict(X_test)
-print(len(y_pred))
-accuracy = accuracy_score(Y_test, y_pred)
-print(accuracy)
-
+if st.button('Make Prediction'):
+    input_species = encoder.transform(np.expand_dims(inp_species, -1))
+    inputs = np.expand_dims(
+        [int(input_species), input_Length1, input_Length2, input_Length3, input_Height, input_Width], 0)
+    prediction = best_xgboost_model.predict(inputs)
+    print("final pred", np.squeeze(prediction, -1))
+    st.write(f"Your fish weight is: {np.squeeze(prediction, -1)} Gram")
